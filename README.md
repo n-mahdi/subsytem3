@@ -148,7 +148,7 @@ JSON object keyed by `camera_id` (not per-camera subtopics), e.g.:
 | R4 | Every valid event classified into a tier | Met for confirmed postures; raw frames within the debounce window are intentionally not yet classified |
 | R5 | Malformed events rejected, 100%, no crash | Met — see `logs/rejected.jsonl` |
 | R6 | No alerts lost when internet drops | Deferred to the Firebase phase (out of scope now) |
-| R7 | No video/images leave the laptop | Met by construction — only structured posture events are handled |
+| R7 | No video/images leave the laptop | Met while `notify.attach_frame` is `false` (the default). Setting it to `true` sends alert photos to Telegram, so R7 must be revised first |
 
 ## Known limitations / still to confirm
 

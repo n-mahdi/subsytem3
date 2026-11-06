@@ -14,6 +14,7 @@ from alert_engine.audio import AudioController
 from alert_engine.config import Config, load_config
 from alert_engine.debounce import DebounceTracker
 from alert_engine.dispatcher import Dispatcher
+from alert_engine.frames import FolderFrameSource
 from alert_engine.metrics import MetricsLogger
 from alert_engine.mqtt_client import MqttClient
 from alert_engine.schemas import AudioDeviceSelect, PostureEventIn, PostureRejectedError, validate_posture
@@ -190,7 +191,10 @@ def make_posture_handler(
 def main() -> None:
     load_dotenv()
     config = load_config("config/config.yaml")
-    notifier = Notifier.from_env(config.notify.tiers, enabled=config.notify.enabled, postures=config.notify.postures)
+    frames = FolderFrameSource(config.notify.frame_dir, config.notify.frame_max_age_s) if config.notify.attach_frame else None
+    notifier = Notifier.from_env(
+        config.notify.tiers, enabled=config.notify.enabled, postures=config.notify.postures, frames=frames
+    )
     rejection_logger = RejectionLogger()
     metrics = MetricsLogger()
     debounce = DebounceTracker(config.debounce)
