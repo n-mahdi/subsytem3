@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from alert_engine.frames import FolderFrameSource
 
@@ -33,3 +34,28 @@ def test_camera_id_cannot_escape_frame_folder(tmp_path):
     frames.mkdir()
     write_frame(tmp_path, camera_id="secret")
     assert FolderFrameSource(frames, max_age_s=5).get_frame("../secret", NOW) is None
+
+
+def test_read_retries_while_windows_locks_the_file(tmp_path, monkeypatch):
+    write_frame(tmp_path)
+    real_read = Path.read_bytes
+    calls = []
+
+    def locked_once(path):
+        calls.append(path)
+        if len(calls) == 1:
+            raise PermissionError("file in use")
+        return real_read(path)
+
+    monkeypatch.setattr(Path, "read_bytes", locked_once)
+    assert FolderFrameSource(tmp_path, max_age_s=5).get_frame("cam-01", NOW) == b"jpeg-bytes"
+
+
+def test_permanently_locked_file_gives_up(tmp_path, monkeypatch):
+    write_frame(tmp_path)
+
+    def always_locked(path):
+        raise PermissionError("file in use")
+
+    monkeypatch.setattr(Path, "read_bytes", always_locked)
+    assert FolderFrameSource(tmp_path, max_age_s=5).get_frame("cam-01", NOW) is None

@@ -26,7 +26,10 @@ def main() -> None:
             for camera_id in args.cameras:
                 temp = frame_dir / f"{camera_id}.tmp"
                 shutil.copyfile(args.image, temp)
-                os.replace(temp, frame_dir / f"{camera_id}.jpg")  # atomic, as a real feed should be
+                try:
+                    os.replace(temp, frame_dir / f"{camera_id}.jpg")  # atomic, as a real feed should be
+                except PermissionError:
+                    pass  # Windows: S3 is reading the frame right now, so try again next round
             time.sleep(args.interval_s)
     except KeyboardInterrupt:
         pass

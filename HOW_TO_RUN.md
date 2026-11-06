@@ -167,7 +167,8 @@ resident images to Telegram's servers, so R7 must be revised before turning it o
 
 Until the camera is hooked up, S3 looks for the latest frame at `data/frames/<camera_id>.jpg`, for
 example `data/frames/cam-01.jpg`. Whatever supplies frames should write to a temporary file and then
-rename it, so S3 never reads a half-written picture.
+rename it, so S3 never reads a half-written picture. On Windows that rename fails while S3 is reading
+the file, so the feed must catch `PermissionError` and try again on its next frame.
 
 If the frame is missing, more than `notify.frame_max_age_s` seconds from the event, or fails to
 upload, the alert is sent as text instead. `data/frames/` is gitignored: never commit resident images.
@@ -179,6 +180,18 @@ python tools/dummy_frames.py --cameras cam-04
 python tools/simulate_publisher.py --scenario fall
 ```
 The S3 log then shows `Phone alert sent with photo`, or `sent as text` if it fell back.
+
+## 6c. Activity history
+
+S3 keeps a history of what each resident did in the `activity_log` table of `data/events.db`. A row is
+added only when a confirmed posture or tier changes, so one-frame glitches never appear. To see it:
+```
+python tools/activity_report.py
+python tools/activity_report.py --person p-003 --hours 24
+```
+Each person gets a timeline and totals per posture. An `unmonitored` row means nobody was watching:
+either their camera dropped out or S3 was shut down. If S3 crashes rather than being stopped with
+Ctrl+C, no `unmonitored` row is written, so the last activity before the crash will look too long.
 
 ## 7. Settings you may need to change (`config/config.yaml`)
 
